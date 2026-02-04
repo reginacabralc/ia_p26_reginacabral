@@ -23,6 +23,7 @@ from pathlib import Path
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams['figure.figsize'] = (14, 10)
 plt.rcParams['font.size'] = 11
+plt.rcParams['font.family'] = 'DejaVu Sans'  # Supports Unicode glyphs (✓, ✗, etc.)
 
 # Crear directorio de outputs organizado
 OUTPUT_DIR = Path(__file__).parent / "images" / "sintetico"
@@ -359,7 +360,7 @@ def plot_diagnosticos_completos(distribuciones):
         for j in range(5):
             table[(i+1, j)].set_facecolor(color)
     
-    ax.set_title('Resumen de Diagnósticos\n🔴 Fat | 🟢 Thin | 🟡 Pseudo-fat')
+    ax.set_title('Resumen de Diagnósticos\n[Red] Fat | [Green] Thin | [Blue] Pseudo-fat')
     
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / 'diagnosticos_fattails.png', dpi=150, bbox_inches='tight')
