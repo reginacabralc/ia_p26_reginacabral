@@ -85,6 +85,61 @@ result = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method="highs")
 
 ---
 
+## Patrón 6: Programación entera mixta — `milp`
+
+```python
+from scipy.optimize import milp, LinearConstraint, Bounds
+
+# Knapsack: max 10x1 + 6x2 + 12x3  s.t.  2x1 + x2 + 3x3 <= 5, x_i ∈ {0,1}
+c = [-10, -6, -12]                          # milp minimiza → negamos
+constraints = LinearConstraint([[2, 1, 3]], ub=5)
+integrality = [1, 1, 1]                     # 1 = variable entera
+bounds = Bounds(lb=0, ub=1)                  # binarias
+
+result = milp(c, constraints=constraints, integrality=integrality, bounds=bounds)
+# result.x → [1, 1, 0],  -result.fun → 16
+```
+
+**Supuestos:** Objetivo y restricciones lineales (o cuadráticos), variables enteras acotadas.
+**Ventaja:** Solución exacta — no aproximada. **Desventaja:** NP-hard, puede ser lento para problemas grandes.
+**Dónde se usa:** Knapsack, scheduling, facility location, selección de features (wrapper method).
+
+---
+
+## Patrón 7: Simulated Annealing — `dual_annealing`
+
+```python
+from scipy.optimize import dual_annealing
+import numpy as np
+
+rastrigin = lambda x: 10*len(x) + sum(xi**2 - 10*np.cos(2*np.pi*xi) for xi in x)
+result = dual_annealing(rastrigin, [(-5.12, 5.12)]*2, seed=42)
+# result.x → ~[0, 0],  result.fun → ~0
+```
+
+**Supuestos:** Solo necesita evaluar $f(x)$ — caja negra. No requiere gradiente.
+**Ventaja:** Combina SA clásico con búsqueda local; encuentra mínimos globales con alta probabilidad.
+**Desventaja:** Más lento que métodos de gradiente; no hay certificado de optimalidad.
+**Dónde se usa:** Calibración de simulaciones, diseño de circuitos, hiperparámetros de modelos.
+
+---
+
+## Patrón 8: Evolución diferencial — `differential_evolution`
+
+```python
+from scipy.optimize import differential_evolution
+
+result = differential_evolution(rastrigin, [(-5.12, 5.12)]*2, seed=42)
+# result.x → ~[0, 0],  result.fun → ~0
+```
+
+**Supuestos:** Caja negra, dominio acotado. Mantiene una población de soluciones.
+**Ventaja:** Robusta, paralelizable, buena para funciones ruidosas o multimodales.
+**Desventaja:** Muchas evaluaciones de $f$; lenta para funciones suaves donde el gradiente está disponible.
+**Dónde se usa:** Hiperparámetro tuning, diseño de antenas, optimización de portafolios con restricciones no lineales.
+
+---
+
 ## Diferenciación automática (autodiff)
 
 En las notas y notebooks anteriores calculamos gradientes **a mano**. Eso funciona para funciones simples, pero no escala a modelos con millones de parámetros.
@@ -115,7 +170,7 @@ print(xy.grad)                 # gradiente exacto, calculado automáticamente
 Esto es exactamente lo que hace `loss.backward()` en cada iteración de entrenamiento de una red neuronal. Autodiff hace que GD sea práctico para modelos reales.
 
 > **Notebook — Abre NB2, Sección autodiff**
-> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/02_algoritmos_y_codigo.ipynb)
+> <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/02_algoritmos_y_codigo.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Ejecuta el ejemplo de autodiff con PyTorch en Rosenbrock.
 > 2. Compara el gradiente de `.backward()` con el gradiente analítico que calculamos a mano.
@@ -135,6 +190,8 @@ Cada vez que entrenas un modelo de ML, estás resolviendo un problema de optimiz
 | Regresión logística | $\sum \log(1 + e^{-y_i w^T x_i})$ | $w$ | Ninguna | L-BFGS / SGD |
 | SVM | $\frac{1}{2}\|w\|^2$ | $w, b$ | $y_i(w^T x_i + b) \geq 1$ | QP (SMO) |
 | Red neuronal | $\mathcal{L}(\theta; X, Y)$ | $\theta$ (millones) | Ninguna (típicamente) | SGD / Adam |
+| Hyperparameter tuning | Validation loss | Hyperparámetros | Rangos acotados | `dual_annealing` / DE |
+| Feature selection | Precisión del modelo | $x_i \in \{0,1\}$ | Max features | GA / IP (`milp`) |
 
 Cuando llamas `model.fit()` en scikit-learn o `loss.backward()` en PyTorch, estás ejecutando un algoritmo de optimización.
 
@@ -188,9 +245,9 @@ print(f"x1={result.x[0]:.4f}, x2={result.x[1]:.4f}, f={result.fun:.4f}")
 :::
 
 > **Notebook — Abre NB2, Sección 10: Capstone**
-> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/02_algoritmos_y_codigo.ipynb)
+> <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/02_algoritmos_y_codigo.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
-> 1. Escribe tus valores analíticos de $x_1^*$ y $x_2^*$.
+> 1. Escribe tus valores analíticos de $x_1^{∗}$ y $x_2^{∗}$.
 > 2. Verifica con scipy que coinciden.
 > 3. Visualiza la solución en los contornos de $f$ con la restricción.
 

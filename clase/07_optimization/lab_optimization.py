@@ -18,7 +18,10 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import minimize, minimize_scalar, linprog
+from scipy.optimize import (
+    minimize, minimize_scalar, linprog, milp, dual_annealing,
+    differential_evolution, LinearConstraint, Bounds,
+)
 
 # -----------------------------------------------------------------------------
 # Styling (same vibe as lab_informacion.py)
@@ -489,6 +492,395 @@ def plot_sgd_vs_gd():
     _save(fig, "sgd_vs_gd.png")
 
 
+# -----------------------------------------------------------------------------
+# Shared: Rastrigin function (used by SA, GA, comparison)
+# -----------------------------------------------------------------------------
+
+def _rastrigin(x):
+    """Rastrigin function: many local minima, global min at origin."""
+    return 10 * len(x) + sum(xi**2 - 10 * np.cos(2 * np.pi * xi) for xi in x)
+
+
+def _rastrigin_2d(X, Y):
+    """Vectorized Rastrigin for contour plots."""
+    return 20 + X**2 + Y**2 - 10 * np.cos(2 * np.pi * X) - 10 * np.cos(2 * np.pi * Y)
+
+
+# -----------------------------------------------------------------------------
+# 10) Simulated Annealing
+# -----------------------------------------------------------------------------
+
+
+def plot_simulated_annealing():
+    """3-panel: SA trajectory on Rastrigin contours, temperature decay, convergence."""
+    rng = np.random.default_rng(42)
+
+    # Custom SA
+    x = rng.uniform(-5, 5, size=2)
+    T0, alpha, n_iter = 10.0, 0.995, 3000
+    T = T0
+    best_x, best_f = x.copy(), _rastrigin(x)
+    history_x, history_T, history_best = [x.copy()], [T], [best_f]
+
+    for _ in range(n_iter):
+        x_new = x + rng.normal(0, 0.5, size=2)
+        x_new = np.clip(x_new, -5.12, 5.12)
+        f_old, f_new = _rastrigin(x), _rastrigin(x_new)
+        delta = f_new - f_old
+        if delta < 0 or rng.random() < np.exp(-delta / max(T, 1e-10)):
+            x = x_new
+            if _rastrigin(x) < best_f:
+                best_x, best_f = x.copy(), _rastrigin(x)
+        T *= alpha
+        history_x.append(x.copy())
+        history_T.append(T)
+        history_best.append(best_f)
+
+    history_x = np.array(history_x)
+
+    # Contour grid
+    g = np.linspace(-5.12, 5.12, 300)
+    X, Y = np.meshgrid(g, g)
+    Z = _rastrigin_2d(X, Y)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+    # Panel 1: trajectory on contours
+    ax = axes[0]
+    ax.contourf(X, Y, Z, levels=30, cmap="viridis", alpha=0.8)
+    ax.plot(history_x[:, 0], history_x[:, 1], "-", color="white", linewidth=0.3, alpha=0.4)
+    n = len(history_x)
+    colors_traj = plt.cm.hot(np.linspace(0, 0.8, n))
+    ax.scatter(history_x[::50, 0], history_x[::50, 1], c=colors_traj[::50],
+               s=8, zorder=3, edgecolors="none")
+    ax.scatter(*history_x[0], color=COLORS["orange"], s=100, zorder=5,
+               edgecolors="black", label="Inicio")
+    ax.scatter(*best_x, color=COLORS["green"], s=120, zorder=5,
+               edgecolors="black", marker="*", label=f"Mejor: f={best_f:.2f}")
+    ax.scatter(0, 0, color="white", s=80, zorder=5, marker="x", linewidths=2,
+               label="Global (0,0)")
+    ax.set_title("Trayectoria SA en Rastrigin")
+    ax.set_xlabel("$x_1$")
+    ax.set_ylabel("$x_2$")
+    ax.legend(fontsize=8, loc="upper right")
+
+    # Panel 2: temperature decay (log scale)
+    ax = axes[1]
+    ax.plot(history_T, color=COLORS["red"], linewidth=1.5)
+    ax.set_yscale("log")
+    ax.set_title("Temperatura $T$ vs iteración")
+    ax.set_xlabel("Iteración")
+    ax.set_ylabel("Temperatura (log)")
+    ax.axhline(y=1.0, color=COLORS["gray"], linestyle="--", linewidth=0.8, label="T=1")
+    ax.legend(fontsize=9)
+
+    # Panel 3: best-so-far convergence
+    ax = axes[2]
+    ax.plot(history_best, color=COLORS["blue"], linewidth=1.5)
+    ax.set_title("Mejor $f(x)$ encontrado")
+    ax.set_xlabel("Iteración")
+    ax.set_ylabel("$f(x^{\\ast})$")
+    ax.axhline(y=0, color=COLORS["green"], linestyle="--", linewidth=0.8, label="Óptimo global (0)")
+    ax.legend(fontsize=9)
+
+    fig.suptitle("Simulated Annealing en Rastrigin 2D", fontsize=14, y=1.02)
+    fig.tight_layout()
+    _save(fig, "simulated_annealing.png")
+
+
+# -----------------------------------------------------------------------------
+# 11) Genetic Algorithm
+# -----------------------------------------------------------------------------
+
+
+def plot_genetic_algorithm():
+    """3-panel: population snapshots, fitness curves, final distribution."""
+    rng = np.random.default_rng(42)
+
+    pop_size, n_gen = 60, 100
+    bounds_ga = (-5.12, 5.12)
+    mutation_rate, mutation_scale = 0.3, 0.5
+
+    # Initialize population
+    pop = rng.uniform(bounds_ga[0], bounds_ga[1], size=(pop_size, 2))
+    fitness = np.array([_rastrigin(ind) for ind in pop])
+
+    history_best, history_mean = [], []
+    snapshots = {}  # generation -> population copy
+
+    for gen in range(n_gen):
+        history_best.append(fitness.min())
+        history_mean.append(fitness.mean())
+
+        if gen in (0, n_gen // 3, 2 * n_gen // 3, n_gen - 1):
+            snapshots[gen] = pop.copy()
+
+        # Tournament selection
+        new_pop = []
+        for _ in range(pop_size):
+            i, j = rng.choice(pop_size, 2, replace=False)
+            winner = pop[i] if fitness[i] < fitness[j] else pop[j]
+            new_pop.append(winner.copy())
+        new_pop = np.array(new_pop)
+
+        # BLX-alpha crossover
+        for k in range(0, pop_size - 1, 2):
+            alpha_blx = 0.5
+            d = np.abs(new_pop[k] - new_pop[k + 1])
+            lo = np.minimum(new_pop[k], new_pop[k + 1]) - alpha_blx * d
+            hi = np.maximum(new_pop[k], new_pop[k + 1]) + alpha_blx * d
+            new_pop[k] = rng.uniform(lo, hi)
+            new_pop[k + 1] = rng.uniform(lo, hi)
+
+        # Gaussian mutation
+        mask = rng.random(pop_size) < mutation_rate
+        new_pop[mask] += rng.normal(0, mutation_scale, size=(mask.sum(), 2))
+        new_pop = np.clip(new_pop, bounds_ga[0], bounds_ga[1])
+
+        # Elitism: keep best from previous generation
+        best_idx = np.argmin(fitness)
+        new_fitness = np.array([_rastrigin(ind) for ind in new_pop])
+        worst_idx = np.argmax(new_fitness)
+        new_pop[worst_idx] = pop[best_idx]
+        new_fitness[worst_idx] = fitness[best_idx]
+
+        pop, fitness = new_pop, new_fitness
+
+    best_overall = pop[np.argmin(fitness)]
+    best_f = fitness.min()
+
+    # Contour grid
+    g = np.linspace(-5.12, 5.12, 300)
+    Xg, Yg = np.meshgrid(g, g)
+    Zg = _rastrigin_2d(Xg, Yg)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+    # Panel 1: population snapshots colored by generation
+    ax = axes[0]
+    ax.contourf(Xg, Yg, Zg, levels=30, cmap="viridis", alpha=0.6)
+    gen_colors = {0: COLORS["red"], n_gen // 3: COLORS["orange"],
+                  2 * n_gen // 3: COLORS["blue"], n_gen - 1: COLORS["green"]}
+    for gen_k, snap in snapshots.items():
+        ax.scatter(snap[:, 0], snap[:, 1], s=15, color=gen_colors[gen_k],
+                   alpha=0.7, label=f"Gen {gen_k}")
+    ax.scatter(0, 0, color="white", s=80, zorder=5, marker="x", linewidths=2)
+    ax.set_title("Población por generación")
+    ax.set_xlabel("$x_1$")
+    ax.set_ylabel("$x_2$")
+    ax.legend(fontsize=8, loc="upper right")
+
+    # Panel 2: best/mean fitness curves
+    ax = axes[1]
+    ax.plot(history_best, color=COLORS["green"], linewidth=2, label="Mejor")
+    ax.plot(history_mean, color=COLORS["blue"], linewidth=1.5, alpha=0.7, label="Media")
+    ax.set_title("Fitness por generación")
+    ax.set_xlabel("Generación")
+    ax.set_ylabel("$f(x)$")
+    ax.axhline(y=0, color=COLORS["gray"], linestyle="--", linewidth=0.8)
+    ax.legend(fontsize=9)
+
+    # Panel 3: final population fitness histogram
+    ax = axes[2]
+    ax.hist(fitness, bins=20, color=COLORS["purple"], edgecolor="black", alpha=0.8)
+    ax.axvline(best_f, color=COLORS["red"], linewidth=2, linestyle="--",
+               label=f"Mejor: {best_f:.2f}")
+    ax.set_title("Distribución fitness (última generación)")
+    ax.set_xlabel("$f(x)$")
+    ax.set_ylabel("Frecuencia")
+    ax.legend(fontsize=9)
+
+    fig.suptitle("Algoritmo Genético en Rastrigin 2D", fontsize=14, y=1.02)
+    fig.tight_layout()
+    _save(fig, "genetic_algorithm.png")
+
+
+# -----------------------------------------------------------------------------
+# 12) Method comparison bar chart
+# -----------------------------------------------------------------------------
+
+
+def plot_method_comparison():
+    """Bar chart comparing methods on Rastrigin 2D."""
+    rng = np.random.default_rng(42)
+    x0 = np.array([3.0, 3.0])
+    bounds_opt = [(-5.12, 5.12)] * 2
+
+    results = {}
+
+    # GD (custom)
+    x_gd = x0.copy()
+    lr = 0.001
+    for _ in range(2000):
+        g = np.array([
+            2 * x_gd[0] + 10 * 2 * np.pi * np.sin(2 * np.pi * x_gd[0]),
+            2 * x_gd[1] + 10 * 2 * np.pi * np.sin(2 * np.pi * x_gd[1]),
+        ])
+        x_gd = x_gd - lr * g
+        x_gd = np.clip(x_gd, -5.12, 5.12)
+    results["GD"] = {"f": _rastrigin(x_gd), "nfev": 2000}
+
+    # L-BFGS-B
+    res_bfgs = minimize(_rastrigin, x0, method="L-BFGS-B",
+                        bounds=bounds_opt)
+    results["L-BFGS-B"] = {"f": res_bfgs.fun, "nfev": res_bfgs.nfev}
+
+    # dual_annealing
+    res_da = dual_annealing(_rastrigin, bounds_opt, seed=42)
+    results["dual_annealing"] = {"f": res_da.fun, "nfev": res_da.nfev}
+
+    # differential_evolution
+    res_de = differential_evolution(_rastrigin, bounds_opt, seed=42)
+    results["diff_evolution"] = {"f": res_de.fun, "nfev": res_de.nfev}
+
+    # Custom SA
+    x_sa = x0.copy()
+    T, alpha_sa, nfev_sa = 10.0, 0.995, 0
+    best_sa = x_sa.copy()
+    best_f_sa = _rastrigin(x_sa)
+    for _ in range(3000):
+        x_new = x_sa + rng.normal(0, 0.5, size=2)
+        x_new = np.clip(x_new, -5.12, 5.12)
+        f_old, f_new = _rastrigin(x_sa), _rastrigin(x_new)
+        nfev_sa += 2
+        delta = f_new - f_old
+        if delta < 0 or rng.random() < np.exp(-delta / max(T, 1e-10)):
+            x_sa = x_new
+            if f_new < best_f_sa:
+                best_sa, best_f_sa = x_sa.copy(), f_new
+        T *= alpha_sa
+    results["SA (custom)"] = {"f": best_f_sa, "nfev": nfev_sa}
+
+    # Custom GA
+    pop = rng.uniform(-5.12, 5.12, size=(60, 2))
+    fit = np.array([_rastrigin(ind) for ind in pop])
+    nfev_ga = 60
+    for _ in range(100):
+        new_pop = []
+        for __ in range(60):
+            i, j = rng.choice(60, 2, replace=False)
+            new_pop.append(pop[i].copy() if fit[i] < fit[j] else pop[j].copy())
+        new_pop = np.array(new_pop)
+        for k in range(0, 59, 2):
+            d = np.abs(new_pop[k] - new_pop[k + 1])
+            lo = np.minimum(new_pop[k], new_pop[k + 1]) - 0.5 * d
+            hi = np.maximum(new_pop[k], new_pop[k + 1]) + 0.5 * d
+            new_pop[k] = rng.uniform(lo, hi)
+            new_pop[k + 1] = rng.uniform(lo, hi)
+        mask = rng.random(60) < 0.3
+        new_pop[mask] += rng.normal(0, 0.5, size=(mask.sum(), 2))
+        new_pop = np.clip(new_pop, -5.12, 5.12)
+        new_fit = np.array([_rastrigin(ind) for ind in new_pop])
+        nfev_ga += 60
+        best_idx = np.argmin(fit)
+        worst_idx = np.argmax(new_fit)
+        new_pop[worst_idx] = pop[best_idx]
+        new_fit[worst_idx] = fit[best_idx]
+        pop, fit = new_pop, new_fit
+    results["GA (custom)"] = {"f": fit.min(), "nfev": nfev_ga}
+
+    # Plot
+    methods = list(results.keys())
+    f_vals = [results[m]["f"] for m in methods]
+    nfevs = [results[m]["nfev"] for m in methods]
+    found_global = [v < 1.0 for v in f_vals]
+    bar_colors = [COLORS["green"] if fg else COLORS["red"] for fg in found_global]
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    bars = ax.bar(methods, f_vals, color=bar_colors, edgecolor="black", linewidth=1.2)
+
+    for bar, nf, fv in zip(bars, nfevs, f_vals):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
+                f"nfev={nf}\nf={fv:.2f}", ha="center", va="bottom", fontsize=9)
+
+    ax.axhline(y=0, color=COLORS["gray"], linestyle="--", linewidth=0.8, label="Óptimo global (f=0)")
+    ax.set_ylabel("Mejor $f(x)$ encontrado")
+    ax.set_title("Comparación de métodos en Rastrigin 2D (inicio: (3, 3))")
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    _save(fig, "method_comparison.png")
+
+
+# -----------------------------------------------------------------------------
+# 13) Integer vs continuous
+# -----------------------------------------------------------------------------
+
+
+def plot_integer_vs_continuous():
+    """2D polytope with integer lattice, LP and IP optima marked."""
+    fig, ax = plt.subplots(figsize=(8, 7))
+
+    # Constraints: 3x + 2y <= 12, x + 3y <= 9, x,y >= 0
+    x1 = np.linspace(0, 5, 400)
+    c1 = (12 - 3 * x1) / 2   # 3x + 2y <= 12
+    c2 = (9 - x1) / 3         # x + 3y <= 9
+
+    ax.plot(x1, c1, color=COLORS["blue"], linewidth=2, label="$3x_1 + 2x_2 \\leq 12$")
+    ax.plot(x1, c2, color=COLORS["green"], linewidth=2, label="$x_1 + 3x_2 \\leq 9$")
+
+    # Feasible region
+    y_upper = np.minimum(c1, c2)
+    y_upper = np.maximum(y_upper, 0)
+    valid = (y_upper >= 0) & (x1 >= 0) & (x1 <= 4)
+    ax.fill_between(x1, 0, y_upper, where=valid, alpha=0.15, color=COLORS["blue"],
+                     label="Región factible (continua)")
+
+    # Integer lattice points inside feasible region
+    for ix in range(5):
+        for iy in range(5):
+            if 3 * ix + 2 * iy <= 12 and ix + 3 * iy <= 9 and ix >= 0 and iy >= 0:
+                ax.scatter(ix, iy, color=COLORS["gray"], s=50, zorder=3,
+                           edgecolors="black", linewidths=0.8)
+
+    # LP relaxation: max 5x + 4y s.t. constraints
+    res_lp = linprog([-5, -4],
+                     A_ub=[[3, 2], [1, 3]],
+                     b_ub=[12, 9],
+                     bounds=[(0, None), (0, None)],
+                     method="highs")
+    lp_x = res_lp.x
+
+    # IP solution: max 5x + 4y, integer
+    res_ip = milp([-5, -4],
+                  constraints=LinearConstraint([[3, 2], [1, 3]], ub=[12, 9]),
+                  integrality=[1, 1],
+                  bounds=Bounds(lb=0))
+    ip_x = res_ip.x
+
+    # Mark LP optimum
+    ax.scatter(*lp_x, color=COLORS["orange"], s=250, zorder=6, marker="*",
+               edgecolors="black", linewidths=1.5)
+    ax.annotate(f"LP: ({lp_x[0]:.2f}, {lp_x[1]:.2f})\nz={-res_lp.fun:.2f}",
+                xy=(lp_x[0], lp_x[1]),
+                xytext=(lp_x[0] + 0.4, lp_x[1] + 0.5),
+                arrowprops=dict(arrowstyle="->", lw=1.5, color=COLORS["orange"]),
+                fontsize=10, color=COLORS["orange"], fontweight="bold",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
+
+    # Mark IP optimum
+    ax.scatter(*ip_x, color=COLORS["red"], s=250, zorder=6, marker="*",
+               edgecolors="black", linewidths=1.5)
+    ax.annotate(f"IP: ({ip_x[0]:.0f}, {ip_x[1]:.0f})\nz={-res_ip.fun:.0f}",
+                xy=(ip_x[0], ip_x[1]),
+                xytext=(ip_x[0] - 1.5, ip_x[1] - 0.8),
+                arrowprops=dict(arrowstyle="->", lw=1.5, color=COLORS["red"]),
+                fontsize=10, color=COLORS["red"], fontweight="bold",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9))
+
+    # Gap annotation
+    gap = -res_lp.fun - (-res_ip.fun)
+    ax.text(0.3, 4.5, f"Gap LP-IP = {gap:.2f}", fontsize=11,
+            bbox=dict(boxstyle="round,pad=0.4", facecolor="#ffffcc", alpha=0.9))
+
+    ax.set_xlim(-0.5, 5)
+    ax.set_ylim(-0.5, 5)
+    ax.set_title("Programación entera vs continua: $\\max\\ 5x_1 + 4x_2$")
+    ax.set_xlabel("$x_1$")
+    ax.set_ylabel("$x_2$")
+    ax.legend(loc="upper right", fontsize=9)
+    _save(fig, "integer_vs_continuous.png")
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -505,6 +897,10 @@ def main():
     plot_linear_programming_2d()
     plot_linprog_feasible()
     plot_sgd_vs_gd()
+    plot_simulated_annealing()
+    plot_genetic_algorithm()
+    plot_method_comparison()
+    plot_integer_vs_continuous()
     print(f"\n✓ Todas las imágenes generadas en {IMAGES_DIR}")
 
 

@@ -10,13 +10,13 @@ Imagina la función objetivo como un **terreno montañoso**. Optimizar es buscar
 
 ## Mínimos y máximos
 
-Un punto $x^*$ es un **mínimo local** si $f(x^*) \leq f(x)$ para todo $x$ en una vecindad de $x^*$.
+Un punto $x^{∗}$ es un **mínimo local** si $f(x^{∗}) \leq f(x)$ para todo $x$ en una vecindad de $x^{∗}$.
 
-Un punto $x^*$ es un **mínimo global** si $f(x^*) \leq f(x)$ para **todo** $x$ en el dominio.
+Un punto $x^{∗}$ es un **mínimo global** si $f(x^{∗}) \leq f(x)$ para **todo** $x$ en el dominio.
 
 **Condición necesaria** (para funciones diferenciables): en un mínimo o máximo, el gradiente se anula:
 
-$$\nabla f(x^*) = 0$$
+$$\nabla f(x^{∗}) = 0$$
 
 Pero cuidado: $\nabla f = 0$ es necesario, no suficiente. Puede ser un mínimo, un máximo, o un punto silla.
 
@@ -31,7 +31,7 @@ La diferencia entre mínimos locales y globales es crucial en la práctica:
 Un algoritmo como descenso de gradiente puede **quedarse atrapado** en un mínimo local sin encontrar el global. Esta es una de las dificultades fundamentales de la optimización no convexa.
 
 > **Notebook — Abre NB1, Sección 3: Paisajes 1D**
-> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb)
+> <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Ejecuta las celdas de la Sección 3 para ver una función con múltiples mínimos.
 > 2. Cambia `f_custom` a `lambda x: x**4 - 8*x**2`. ¿Cuántos mínimos locales tiene?
@@ -50,7 +50,7 @@ El ejemplo clásico es $f(x,y) = x^2 - y^2$: en $(0,0)$ el gradiente es cero, pe
 **¿Por qué importa?** En dimensiones altas (como el entrenamiento de redes neuronales con millones de parámetros), los puntos silla son **mucho más comunes** que los mínimos locales. Intuitivamente: para que un punto crítico sea un mínimo local, *todas* las direcciones deben curvar hacia arriba. En alta dimensión, es muy probable que al menos una dirección curve hacia abajo.
 
 > **Notebook — Abre NB1, Sección 4: Superficies 2D**
-> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb)
+> <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Compara los contornos del punto silla ($x^2 - y^2$) con el bowl ($x^2 + y^2$).
 > 2. Cambia `f_custom_2d` a `lambda x, y: x**2*y**2 - x**2 - y**2`. ¿Tiene puntos silla?
@@ -86,7 +86,7 @@ Ejemplos de funciones **no** convexas:
 - Cualquier red neuronal con más de una capa
 
 > **Notebook — Abre NB1, Secciones 5-6: Convexidad**
-> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb)
+> <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Ejecuta las pruebas de cuerdas para $x^2$, $\sin(x)$, $e^x$, $\cos(x)$.
 > 2. Clasifica cada función como convexa o no convexa.
@@ -115,11 +115,64 @@ Cuando las variables de decisión deben ser **enteras** (¿cuántos camiones env
 
 ¿Por qué es más difícil? La región factible ya no es continua — son puntos aislados. No hay gradientes, y no puedes "caminar" suavemente hacia la solución.
 
-**Ejemplo clásico — knapsack (mochila):** Tienes una mochila con capacidad $W$ y $n$ objetos, cada uno con peso $w_i$ y valor $v_i$. ¿Cuáles llevas para maximizar el valor total sin exceder la capacidad?
+#### Variables binarias vs enteras generales
 
-$$\max \sum_i v_i x_i \quad \text{s.t.} \quad \sum_i w_i x_i \leq W, \quad x_i \in \{0, 1\}$$
+- **Binarias** ($x_i \in \{0, 1\}$): decisiones sí/no. ¿Incluir este objeto? ¿Abrir esta planta?
+- **Enteras generales** ($x_i \in \mathbb{Z}_{\geq 0}$): ¿cuántas unidades producir? ¿cuántos turnos asignar?
+- **Mixtas (MIP)**: algunas variables enteras, otras continuas. Lo más común en la práctica.
 
-En Python, `scipy.optimize.milp` resuelve problemas de programación entera mixta (MIP). Para problemas más serios, bibliotecas como PuLP o Google OR-Tools son el estándar industrial.
+#### Branch-and-Bound: cómo se resuelven
+
+El algoritmo estándar para programación entera es **branch-and-bound**:
+
+1. **Relaja**: resuelve la versión continua (LP relaxation). Esto da una **cota inferior** (para minimización) del óptimo entero — el óptimo continuo siempre es al menos tan bueno.
+2. **Ramifica**: elige una variable fraccionaria (e.g., $x_1 = 2.7$) y crea dos subproblemas: uno con $x_1 \leq 2$ y otro con $x_1 \geq 3$.
+3. **Acota**: resuelve la relajación LP de cada subproblema. Si la cota inferior de un subproblema es peor que la mejor solución entera conocida, **poda** esa rama (no la explores más).
+4. **Repite** hasta que todas las ramas estén podadas o resueltas.
+
+La clave es que las relajaciones LP son baratas de resolver y dan cotas que permiten eliminar ramas enteras del árbol de búsqueda.
+
+![Programación entera vs continua]({{ '/07_optimization/images/integer_vs_continuous.png' | url }})
+
+:::example{title="Ejemplo: Knapsack (mochila) con 6 objetos"}
+
+Tienes una mochila con capacidad $W = 15$ kg y 6 objetos:
+
+| Objeto | Peso ($w_i$) | Valor ($v_i$) | Valor/Peso |
+|:------:|:------------:|:-------------:|:----------:|
+| A | 5 | 10 | 2.00 |
+| B | 4 | 8 | 2.00 |
+| C | 6 | 11 | 1.83 |
+| D | 3 | 7 | 2.33 |
+| E | 7 | 14 | 2.00 |
+| F | 2 | 3 | 1.50 |
+
+$$\max \sum_i v_i x_i \quad \text{s.t.} \quad \sum_i w_i x_i \leq 15, \quad x_i \in \{0, 1\}$$
+
+**Relajación LP** (permite $x_i \in [0,1]$): ordena por valor/peso y llena la mochila. Resultado: A, D, B completos + 0.5 de E → valor = 35.0. Pero **no puedes llevar medio objeto**.
+
+**Redondeo de la LP**: quitas E (el fraccionario) → A + D + B = peso 12, valor 25. ¿Es óptimo? **No.**
+
+**Solución MIP óptima**: A + D + E = peso 15, valor 31. El redondeo dio 25 — un **19% peor**.
+
+:::
+
+#### Supuestos y características
+
+| Ventajas | Desventajas |
+|----------|-------------|
+| Solución **exacta** (óptimo entero garantizado) | **NP-hard** en general (exponencial en peor caso) |
+| La relajación LP da cotas para poda eficiente | Mucho más difícil que LP continua |
+| Solvers modernos (HiGHS, CPLEX, Gurobi) resuelven problemas grandes | Sensible a la formulación del problema |
+
+#### Dónde se usa
+
+- **Knapsack**: selección de proyectos, asignación de presupuesto
+- **Scheduling**: asignación de turnos, horarios de exámenes
+- **Facility location**: ¿dónde abrir almacenes o plantas?
+- **Network design**: diseño de redes de telecomunicaciones
+
+En Python, `scipy.optimize.milp` resuelve problemas MIP. Para problemas más serios, bibliotecas como PuLP o Google OR-Tools son el estándar industrial.
 
 ---
 

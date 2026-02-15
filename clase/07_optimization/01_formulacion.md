@@ -78,10 +78,10 @@ Por convención, la mayoría de los textos y software usan **minimización**. Si
 | **Algoritmos típicos** | Descenso de gradiente | Simplex, puntos interiores, Lagrange |
 
 > **Notebook — Abre NB1, Sección 2: Función objetivo**
-> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb)
+> <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Completa la función `ganancia()` y verifica con el assert.
-> 2. Cambia los precios a \$7 y \$2 — ¿cómo cambia la ganancia?
+> 2. Cambia los precios a &#36;7 y &#36;2 — ¿cómo cambia la ganancia?
 > 3. ¿Qué pasa si un producto tiene ganancia negativa?
 
 ---
@@ -90,7 +90,7 @@ Por convención, la mayoría de los textos y software usan **minimización**. Si
 
 :::example{title="Ejemplo 1: Producción (programación lineal)"}
 
-Una fábrica produce dos productos ($x_1$ y $x_2$). Cada unidad de producto 1 genera \$5 de ganancia; cada unidad de producto 2 genera \$4. Pero los recursos son limitados:
+Una fábrica produce dos productos ($x_1$ y $x_2$). Cada unidad de producto 1 genera &#36;5 de ganancia; cada unidad de producto 2 genera &#36;4. Pero los recursos son limitados:
 
 - Recurso A: cada unidad de producto 1 usa 6 unidades, cada unidad de producto 2 usa 4 unidades. Disponible: 24.
 - Recurso B: cada unidad de producto 1 usa 1 unidad, cada unidad de producto 2 usa 2 unidades. Disponible: 6.
@@ -137,7 +137,7 @@ Esto es un problema **sin restricciones**. La función objetivo es la suma de er
 Nota: este problema tiene **solución cerrada** (derivar, igualar a cero, despejar):
 
 $$
-\beta^* = \frac{\sum_i x_i y_i}{\sum_i x_i^2}
+\beta^{∗} = \frac{\sum_i x_i y_i}{\sum_i x_i^2}
 $$
 
 Pero cuando el modelo es más complejo (redes neuronales, por ejemplo), no hay solución cerrada y necesitamos algoritmos iterativos.
@@ -197,7 +197,7 @@ Es decir, regularizar es optimizar sobre una **bola** en el espacio de parámetr
 :::
 
 > **Notebook — Abre NB1, Sección 8: Producción LP**
-> [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb)
+> <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Escribe las matrices $c$, $A$, $b$ como arrays de numpy.
 > 2. Verifica que $x = (2, 1)$ es factible.
@@ -216,7 +216,7 @@ Cuando te encuentres un problema de optimización "en palabras", sigue estos pas
 :::exercise{title="Ejercicio: Formula el problema" difficulty="2"}
 
 Una empresa de logística tiene 3 rutas para enviar paquetes. Cada ruta $i$ tiene:
-- Un costo por paquete $c_i$: ruta 1 cuesta \$2, ruta 2 cuesta \$5, ruta 3 cuesta \$3.
+- Un costo por paquete $c_i$: ruta 1 cuesta &#36;2, ruta 2 cuesta &#36;5, ruta 3 cuesta &#36;3.
 - Una capacidad máxima: ruta 1 puede llevar 100 paquetes, ruta 2 puede llevar 80, ruta 3 puede llevar 120.
 
 La empresa necesita enviar **exactamente 200 paquetes** en total y quiere minimizar el costo.
