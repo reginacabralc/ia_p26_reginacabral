@@ -77,7 +77,7 @@ Por convención, la mayoría de los textos y software usan **minimización**. Si
 | **Dificultad** | Generalmente más fácil | Más difícil (hay que respetar la región factible) |
 | **Algoritmos típicos** | Descenso de gradiente | Simplex, puntos interiores, Lagrange |
 
-> **Notebook — Abre NB1, Sección 2: Función objetivo**
+> **Notebook — Abre NB1: Función objetivo**
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Completa la función `ganancia()` y verifica con el assert.
@@ -196,7 +196,7 @@ Es decir, regularizar es optimizar sobre una **bola** en el espacio de parámetr
 
 :::
 
-> **Notebook — Abre NB1, Sección 8: Producción LP**
+> **Notebook — Abre NB1: Producción (LP)**
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Escribe las matrices $c$, $A$, $b$ como arrays de numpy.

@@ -30,10 +30,10 @@ La diferencia entre mínimos locales y globales es crucial en la práctica:
 
 Un algoritmo como descenso de gradiente puede **quedarse atrapado** en un mínimo local sin encontrar el global. Esta es una de las dificultades fundamentales de la optimización no convexa.
 
-> **Notebook — Abre NB1, Sección 3: Paisajes 1D**
+> **Notebook — Abre NB1: Paisajes 1D**
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
-> 1. Ejecuta las celdas de la Sección 3 para ver una función con múltiples mínimos.
+> 1. Ejecuta las celdas del bloque **Paisajes 1D** para ver una función con múltiples mínimos.
 > 2. Cambia `f_custom` a `lambda x: x**4 - 8*x**2`. ¿Cuántos mínimos locales tiene?
 > 3. Prueba `lambda x: np.abs(x - 2)` — ¿es diferenciable en el mínimo?
 
@@ -49,7 +49,7 @@ El ejemplo clásico es $f(x,y) = x^2 - y^2$: en $(0,0)$ el gradiente es cero, pe
 
 **¿Por qué importa?** En dimensiones altas (como el entrenamiento de redes neuronales con millones de parámetros), los puntos silla son **mucho más comunes** que los mínimos locales. Intuitivamente: para que un punto crítico sea un mínimo local, *todas* las direcciones deben curvar hacia arriba. En alta dimensión, es muy probable que al menos una dirección curve hacia abajo.
 
-> **Notebook — Abre NB1, Sección 4: Superficies 2D**
+> **Notebook — Abre NB1: Superficies 2D**
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/01_formulacion_y_paisaje.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Compara los contornos del punto silla ($x^2 - y^2$) con el bowl ($x^2 + y^2$).

@@ -39,7 +39,7 @@ Descenso de gradiente es iterativo: ¿cómo sabemos que ya llegamos? Tres criter
 2. **Cambio en la función:** $|f(x_{k+1}) - f(x_k)| < \varepsilon$ — "ya no mejoramos"
 3. **Cambio en parámetros:** $\|x_{k+1} - x_k\| < \varepsilon$ — "ya no nos movemos"
 
-En `scipy.optimize.minimize`, estos corresponden a los parámetros `gtol`, `ftol` y `xtol`. Internamente, scipy combina varios de estos criterios.
+En `scipy.optimize.minimize`, estos criterios **se reflejan** (dependiendo del método) en tolerancias como `gtol`, `ftol` y `xtol`. En la práctica, SciPy combina varios criterios y algunos métodos ignoran ciertas tolerancias.
 
 En la práctica de ML, es común usar un **número fijo de épocas** (por ejemplo, "entrena 100 épocas"). Esto no es principiado — puedes estar parando demasiado pronto o demasiado tarde — pero es simple y predecible.
 
@@ -275,7 +275,7 @@ Solución: $(x^{∗}, y^{∗}) = (1/2, 1/2)$, con $f^{∗} = 1/2$.
 - Economía (maximización de utilidad con restricción de presupuesto)
 - Física (mecánica analítica, principio de mínima acción)
 
-> **Notebook — Abre NB2, Sección 7: Lagrange**
+> **Notebook — Abre NB2: Lagrange**
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/02_algoritmos_y_codigo.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Verifica que scipy confirma la solución analítica $(0.5, 0.5)$.
@@ -378,7 +378,7 @@ El **método simplex** (Dantzig, 1947) camina de vértice en vértice, siempre m
 - Scheduling de aerolíneas
 - Asignación de recursos en telecomunicaciones
 
-> **Notebook — Abre NB2, Sección 9: linprog**
+> **Notebook — Abre NB2: `linprog`**
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/02_algoritmos_y_codigo.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Resuelve el problema de producción con `linprog`. La solución está en un vértice.

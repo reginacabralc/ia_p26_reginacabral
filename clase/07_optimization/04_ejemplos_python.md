@@ -11,6 +11,7 @@ Esta sección es tu **cheat sheet** de `scipy.optimize`. Cada patrón muestra el
 ## Patrón 1: Minimización 1D — `minimize_scalar`
 
 ```python
+import numpy as np
 from scipy.optimize import minimize_scalar
 
 f = lambda x: (x - 3)**2 + 2 * np.sin(5 * x)
@@ -244,7 +245,7 @@ print(f"x1={result.x[0]:.4f}, x2={result.x[1]:.4f}, f={result.fun:.4f}")
 
 :::
 
-> **Notebook — Abre NB2, Sección 10: Capstone**
+> **Notebook — Abre NB2: Capstone**
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/02_algoritmos_y_codigo.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 >
 > 1. Escribe tus valores analíticos de $x_1^{∗}$ y $x_2^{∗}$.
@@ -253,18 +254,18 @@ print(f"x1={result.x[0]:.4f}, x2={result.x[1]:.4f}, f={result.fun:.4f}")
 
 ---
 
-:::homework{id="hw-07" title="Tarea 7: Optimizacion" due="2026-02-23" points="20"}
+:::homework{id="hw-07" title="Tarea 7: Optimización" due="2026-02-23" points="20"}
 
-Resuelve 5 problemas de optimizacion en el notebook. Para cada uno debes:
+Resuelve 5 problemas de optimización en el notebook. Para cada uno debes:
 
-1. **Formular** el problema en notacion matematica (variables, objetivo, restricciones)
-2. **Elegir** el optimizador adecuado y justificar tu eleccion
-3. **Implementar** la solucion completando las funciones esqueleto
+1. **Formular** el problema en notación matemática (variables, objetivo, restricciones)
+2. **Elegir** el optimizador adecuado y justificar tu elección
+3. **Implementar** la solución completando las funciones esqueleto
 4. **Visualizar** y reportar el resultado
 
-Los problemas cubren: programacion lineal, optimizacion cuadratica con restricciones, programacion entera binaria, optimizacion black-box multimodal, y programacion entera mixta.
+Los problemas cubren: programación lineal, optimización cuadrática con restricciones, programación entera binaria, optimización black-box multimodal y programación entera mixta.
 
-**Entrega:** Pull request en `estudiantes/<tu-usuario>/tarea_07/` con el notebook ejecutado. Tambien entregar en Canvas.
+**Entrega:** Pull request en `estudiantes/<tu-usuario>/tarea_07/` con el notebook ejecutado. También entregar en Canvas.
 
 > <a href="https://colab.research.google.com/github/sonder-art/ia_p26/blob/main/clase/07_optimization/notebooks/03_tarea_optimizacion.ipynb" target="_blank"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
 
