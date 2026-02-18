@@ -26,6 +26,10 @@ source:
     - "README.md"                  # Landing page (excluded from nav)
     - "b_libros"                   # PDFs not rendered as pages
     - "images"                     # Static images (not content)
+    - "__pycache__"                # Python bytecode cache
+    - "datasets"                   # Data files (not content pages)
+    - "it_code"                    # Python utility modules
+    - "/code"                      # Code directories (matches code/ but not it_code/)
 
 # Theme configuration
 theme:

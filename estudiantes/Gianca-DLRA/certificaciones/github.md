@@ -17,8 +17,8 @@ Esta es la plantilla que debes copiar a tu carpeta `estudiantes/tu_usuario/certi
 
 # Evidencia: Introduction to GitHub Concepts
 
-Nombre del Estudiante: [Tu Nombre Aquí]
-Fecha: [Fecha]
+Nombre del Estudiante: Giancarlo De La Rosa
+Fecha: 28/enero/2026
 
 ## Prueba de Finalización
 
@@ -32,4 +32,4 @@ Por favor, inserta aquí abajo una captura de pantalla clara donde se vea:
 ```
 
 o enlace al certificado público:
-[Pegar Link Aquí]
+[Link Aquí](https://www.datacamp.com/completed/statement-of-accomplishment/course/d4afe2c9b6223dbe5fd97dda6d02e28b44e29411)

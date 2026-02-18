@@ -10,26 +10,11 @@ This is a course repository for ITAM's Artificial Intelligence class (Primavera 
 
 ```
 ia_p26/
-├── clase/                    # Course content (rendered to site)
-│   ├── 00_index.md           # Main index
-│   ├── 01_*/                 # Numbered chapters
-│   ├── a_stack/              # Appendix A: Technical stack
-│   ├── b_libros/             # Appendix B: Books (gitignored, not rendered)
-│   ├── 07_certificaciones/   # Certification guides
-│   └── flow.sh               # Git workflow script
-├── estudiantes/              # Student work (not rendered)
-├── uu_framework/             # Static site framework
-│   ├── config/               # Site & theme configuration (YAML)
-│   ├── scripts/              # Python preprocessing (orchestrator + extractors)
-│   ├── eleventy/             # Eleventy SSG (config, templates, styles)
-│   │   ├── .eleventy.js      # Main Eleventy configuration
-│   │   ├── _includes/        # Nunjucks templates & layouts
-│   │   ├── _data/            # Generated JSON files (metadata, hierarchy, tasks)
-│   │   └── src/              # Source CSS (Tailwind + themes)
-│   ├── docker/               # Docker build environment
-│   └── docs/                 # Framework documentation (dev/profesor/estudiante)
-├── _site/                    # Built output (gitignored)
-└── CLAUDE.md                 # This file
+├── clase/              # Course content (rendered to site); includes flow.sh
+├── estudiantes/        # Student work (not rendered)
+├── uu_framework/       # Static site framework (config/, scripts/, eleventy/, docker/, docs/)
+├── _site/              # Built output (gitignored)
+└── CLAUDE.md           # This file
 ```
 
 ## uu_framework Architecture
@@ -67,6 +52,8 @@ Phase 3: Tailwind CSS (tailwind.config.js)
 **Data Flow**: Python scripts extract data from markdown frontmatter and content, generating JSON files that Eleventy templates consume via the `_data/` directory. This separation allows content changes to trigger minimal rebuilds.
 
 **Content Exclusions**: Files matching patterns in `uu_framework/config/site.yaml` (like `b_libros/`, `flow.sh`, `??_*` directories) are excluded from rendering but may still be present in the repository.
+
+**Docs Path**: `uu_framework/docs/` content renders to `/docs/` on the site (separate from the `clase/` hierarchy). Handled by `generate_docs_hierarchy()` in preprocessing.
 
 **Path Prefix**: Auto-detected from git remote (e.g., `/ia_p26/`). The framework reads the repository name from `git config --get remote.origin.url` during preprocessing and generates `repo.json`, which Eleventy uses for URL prefixing. Configurable via `site.yaml` or `PATH_PREFIX` environment variable.
 
@@ -123,26 +110,42 @@ graph TD
 
 ## Key Commands
 
-### Docker Build Commands
+### Docker Build Commands (recommended)
 
 All Docker commands must be run from the repository root:
 
 ```bash
 # Start dev server with hot reload (most common)
 docker compose -f uu_framework/docker/docker-compose.yaml up dev
-# → Runs preprocessing (auto-detects repo), builds site, starts BrowserSync
+# → Runs preprocessing, builds site, starts BrowserSync at http://localhost:3000/ia_p26/
 # → Watches for file changes and auto-rebuilds
 
 # Production build (for deployment)
 docker compose -f uu_framework/docker/docker-compose.yaml run build
-# → Runs full build pipeline: preprocess → eleventy → tailwind → asset copy
 
 # Debug preprocessing only
 docker compose -f uu_framework/docker/docker-compose.yaml run preprocess
-# → Runs only Python scripts, outputs JSON to _data/ with --verbose flag
 ```
 
-**Important**: Dev server runs at `http://localhost:3000/{repo-name}/` (e.g., `http://localhost:3000/ia_p26/` for this repo).
+### Local Build Commands (without Docker)
+
+Requires Node.js >=18 and Python 3 with `pyyaml`. CI uses **Node 20** and **Python 3.12**; match these locally to avoid version mismatches.
+
+```bash
+# Install Node dependencies (one time)
+cd uu_framework/eleventy && npm install && cd ../..
+
+# Phase 1: Preprocessing
+python3 uu_framework/scripts/preprocess.py --verbose
+
+# Phase 2: Eleventy build
+./uu_framework/eleventy/node_modules/.bin/eleventy --config=uu_framework/eleventy/.eleventy.js
+
+# Phase 3: Tailwind CSS
+mkdir -p _site/css/themes
+./uu_framework/eleventy/node_modules/.bin/tailwindcss -c uu_framework/eleventy/tailwind.config.js -i uu_framework/eleventy/src/css/main.css -o _site/css/styles.css --minify
+cp uu_framework/eleventy/src/css/themes/*.css _site/css/themes/
+```
 
 ### Git Workflow Script (flow.sh)
 
@@ -160,6 +163,12 @@ Student-focused wrapper for common Git operations:
 
 **Upstream repository**: Auto-detected from git remote (for this repo: `git@github.com:sonder-art/ia_p26.git`)
 **Student workflow**: Work in `estudiantes/<username>/`, commit to feature branches, push to personal forks, create PRs to upstream.
+
+## CI/CD
+
+- **Deployment** (`deploy.yaml`): Push to `main` triggers full build → deploy to GitHub Pages at `https://www.sonder.art/ia_p26/`
+- **Student PR validation** (`student-pr-validation.yml`): Ensures student PRs only modify files under `estudiantes/<username>/`. Bypasses for `uumami` and repo owner.
+- **Claude Code** (`claude.yml`): Responds to `@claude` mentions in issues, PR comments, and PR reviews via `anthropics/claude-code-action@v1`.
 
 ## Development Guidelines
 
@@ -183,6 +192,7 @@ Key files to understand when making framework changes:
    - `preprocess.py`: Orchestrator that runs all extractors
    - Modify extractors to change what data is available to templates
    - JSON outputs land in `_data/` for Eleventy consumption
+   - `calendario_temas.csv` in `clase/` feeds into `calendar_topics.json` (DD/MM/YYYY format)
 
 4. **Configuration** (`uu_framework/config/site.yaml`):
    - Exclusion patterns, theme settings, feature flags
@@ -191,31 +201,10 @@ Key files to understand when making framework changes:
 ### When Creating Content
 
 1. **Follow file naming convention** for proper ordering (see table above)
-   - `00_index.md` for directory landing pages
-   - Numeric prefixes (`01_`, `02_`) for chapters
-   - Letter prefixes (`a_`, `b_`) for appendices
-   - `??_` prefix for work-in-progress (excluded from build)
-
-2. **Use YAML frontmatter** for metadata:
-   ```yaml
-   ---
-   title: "Page Title"
-   summary: "Brief description"
-   order: 10  # Optional override for sorting
-   ---
-   ```
-
-3. **Use component syntax** for assignments:
-   - `:::homework{id="hw-01" title="..." due="2026-02-01" points="10"}`
-   - `:::exercise{title="..."}`
-   - `:::prompt{title="..."}` (includes copy button)
-   - `:::example{title="..."}`
-   - `:::exam{id="..." title="..." date="..."}`
-   - `:::project{id="..." title="..." due="..."}`
-
+2. **Use YAML frontmatter** (`title`, `summary`, optional `order` for sort override, `date` for exam/task components)
+3. **Use component syntax** for assignments (see Markdown Components section above)
 4. **Markdown links**: Write as `[text](../path/file.md)` - Eleventy transforms to `[text](../path/file/)` automatically
-
-5. **Images**: Place in nearest `images/` directory, reference as `![alt](images/file.png)` - Eleventy handles path resolution
+5. **Images**: Place in nearest `images/` directory, reference as `![alt](images/file.png)`
 
 ### Language Guidelines
 
@@ -223,43 +212,16 @@ Key files to understand when making framework changes:
 - **Course content & user guides**: Spanish
 - **Comments in code**: English preferred
 
-## Common Workflows
-
-### Adding New Course Content
-
-1. Create or modify markdown files in `clase/`
-2. Follow naming conventions (`01_chapter/`, `00_index.md`)
-3. Run dev server: `docker compose -f uu_framework/docker/docker-compose.yaml up dev`
-4. Preview at `http://localhost:3000/{repo-name}/` (auto-detected)
-5. Preprocessing runs automatically, auto-detects repo config, generates fresh JSON data
-
-### Debugging Build Issues
-
-```bash
-# Check preprocessing output (verbose mode)
-docker compose -f uu_framework/docker/docker-compose.yaml run preprocess
-
-# Check generated JSON files
-cat uu_framework/eleventy/_data/metadata.json
-cat uu_framework/eleventy/_data/hierarchy.json
-cat uu_framework/eleventy/_data/tasks.json
-
-# Verify exclusion patterns
-cat uu_framework/config/site.yaml
-```
-
-### Student Assignment Workflow
-
-Students work in `estudiantes/<username>/`:
-1. `./clase/flow.sh start tarea-X` - Create feature branch
-2. Work in personal directory, commit changes
-3. `./clase/flow.sh save "message"` - Commit work
-4. `./clase/flow.sh upload` - Push to fork and create PR to upstream
-5. After PR merge: `./clase/flow.sh finish` - Clean up and sync
-
 ## Gotchas
 
-- **Preprocessing required first**: Always run preprocessing before Eleventy. The build will fail if `repo.json` doesn't exist (auto-detected from git remote).
-- **Path prefix errors**: If you see "Cannot determine path prefix", run `docker compose -f uu_framework/docker/docker-compose.yaml run preprocess` first.
+- **Preprocessing required first**: Always run preprocessing before Eleventy. The build will fail if `repo.json` doesn't exist (auto-detected from git remote). If you see "Cannot determine path prefix", run preprocessing first.
+- **`_data/*.json` files are gitignored**: `metadata.json`, `hierarchy.json`, `tasks.json`, `calendar_topics.json`, `repo.json` are all generated by preprocessing and won't exist in a fresh clone. Run preprocessing to generate them.
+- **`clase/README.md` is auto-generated**: Preprocessing copies root `README.md` → `clase/README.md` (with URL transformations). Never edit `clase/README.md` directly; edit the root `README.md` instead.
 - **Content exclusions**: `??_` prefixed directories are work-in-progress and excluded from build. `b_libros/` is gitignored.
 - **Markdown links**: Use `.md` extension in links (e.g., `[text](../file.md)`). Eleventy transforms them to directory URLs automatically.
+- **Calendar CSV date format**: `clase/calendario_temas.csv` uses **DD/MM/YYYY** input format. Preprocessing converts to ISO (YYYY-MM-DD). Easy to mix up.
+- **`formatDate` filter uses Mexico City timezone**: Dates use `es-MX` locale with `America/Mexico_City` timezone. The filter appends `T12:00:00` to date strings to avoid timezone-shift issues.
+- **Dev server port**: Docker dev server uses BrowserSync on port **3000** (not the Eleventy default 8080).
+- **Asset copying is multi-layered**: Images/PDFs are copied by Docker compose commands (dev), GitHub Actions (prod), and Eleventy passthrough. Changes to asset copy logic may need updating in multiple places.
+- **`flow.sh` depends on `repo.json`**: It reads `repo.json` for upstream URL detection. Run preprocessing first or ensure `repo.json` exists.
+- **No test suite or linter**: The framework has no tests or linting configuration. Validate changes by running the dev server.
