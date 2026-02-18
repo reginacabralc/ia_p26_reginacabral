@@ -68,11 +68,11 @@ jobs:
             # Check if file is within allowed directory
             if [[ "$file" == estudiantes/"$PR_AUTHOR"/* ]]; then
               echo "✅ $file"
-              ((VALID_COUNT++))
+              VALID_COUNT=$((VALID_COUNT + 1))
             else
               echo "❌ $file"
               INVALID_FILES="$INVALID_FILES\n  - $file"
-              ((INVALID_COUNT++))
+              INVALID_COUNT=$((INVALID_COUNT + 1))
             fi
           done <<< "$CHANGED_FILES"
 

@@ -135,6 +135,26 @@ grep -r "filename" _site/
 
 ---
 
+## Math Rendering Issues
+
+### LaTeX formulas break (unexpected line breaks)
+
+**Symptom**: Math expressions render split across lines or with weird tokens like `midI`, `logp(...)`.
+
+**Cause**: Using double backslash `\\` inside math mode. In LaTeX/KaTeX, `\\` means a line break. This commonly happens when authors accidentally write `\\mid`, `\\log`, `\\in`, etc.
+
+**Fix**: Use a single backslash for commands.
+
+```markdown
+\(p(x\\mid I)\)   ✗ breaks (line break)
+\(p(x\mid I)\)    ✓ correct
+
+\(-\\log p(x)\)   ✗ breaks
+\(-\log p(x)\)     ✓ correct
+```
+
+---
+
 ## Known Issues
 
 ### XSS Vulnerability

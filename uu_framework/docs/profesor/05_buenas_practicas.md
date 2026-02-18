@@ -137,6 +137,38 @@ def hello():
 
 ---
 
+## Matemáticas (LaTeX): gotcha común con `\\`
+
+El sitio renderiza matemáticas en línea y en bloque (por ejemplo, `\( ... \)` y `\[ ... \]`).
+
+### Error típico
+
+Dentro del modo matemático, escribir **doble backslash** `\\` provoca un **salto de línea** en LaTeX/KaTeX.
+Esto rompe expresiones como `\mid`, `\log`, `\in`, etc. y produce resultados raros (por ejemplo, “midI” o fórmulas partidas).
+
+**Mal (provoca salto de línea):**
+
+```markdown
+\(p(x\\mid I)\)
+\(-\\log p(x)\)
+\(p\\in(0,1]\)
+```
+
+**Bien (un solo backslash para comandos):**
+
+```markdown
+\(p(x\mid I)\)
+\(-\log p(x)\)
+\(p\in(0,1]\)
+```
+
+### Regla práctica
+
+- Usa **`\`** para comandos matemáticos (`\mid`, `\log`, `\in`, `\approx`, etc.).
+- Usa **`\\`** solo si realmente quieres un salto de línea dentro de una ecuación (raro en notas de clase).
+
+---
+
 ## Diagramas
 
 ### Mantener Simples

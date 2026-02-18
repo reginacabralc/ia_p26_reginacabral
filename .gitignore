@@ -227,3 +227,6 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 clase/b_libros/
+
+# Homework solutions (do not distribute)
+*_SOLUCION.ipynb
