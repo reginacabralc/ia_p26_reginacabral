@@ -185,7 +185,7 @@ flowchart TD
 *Todo modelo hace supuestos sobre cómo funciona el mundo — sin ellos, generalizar sería imposible.*
 
 Este eje captura **qué creencias estructurales** incorpora el modelo. En la literatura se conoce como:
-- **Sesgo inductivo** (inductive bias) — término técnico en ML
+- **Sesgo inductivo** (inductive bias) — término técnico en ML: es el conjunto de supuestos o creencias previas que un sistema —ya sea una persona o un modelo de aprendizaje automático— utiliza para generalizar a partir de datos limitados.Es la “idea previa” que guía cómo interpretamos la información cuando no tenemos todos los datos.
 - **Prior** — término bayesiano para creencias previas
 - **Restricción** — porque limita el espacio de hipótesis
 
