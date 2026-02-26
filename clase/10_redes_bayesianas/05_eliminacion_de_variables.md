@@ -133,44 +133,88 @@ Simplemente seleccionamos las filas donde $B = 1$. El resultado es un factor que
 
 ## El algoritmo de Eliminación de Variables
 
-### Pseudocódigo
+### 1) Lenguaje natural
 
+La eliminación de variables evita enumerar todas las combinaciones ocultas. En lugar de eso:
+1. Convierte la red en una lista de factores (las CPTs).
+2. Incorpora evidencia restringiendo factores.
+3. Elimina cada variable oculta del orden elegido:
+   - junta factores que la mencionan,
+   - los multiplica,
+   - marginaliza esa variable,
+   - devuelve el nuevo factor a la lista.
+4. Multiplica los factores restantes y normaliza sobre \(Q\).
+
+### 2) Matemática
+
+Dado un query \(P(Q \mid \mathcal{E}=e)\), con ocultas \(H\):
+
+$$
+P(Q \mid \mathcal{E}=e) \propto \sum_H \prod_i f_i.
+$$
+
+Si eliminamos una variable \(Z\), definimos:
+
+$$
+g(\mathbf{Y}) \;=\; \sum_{z}\;\prod_{f \in \mathcal{F}_Z} f,
+$$
+
+donde \(\mathcal{F}_Z\) son los factores que contienen \(Z\), y \(\mathbf{Y}\) son las variables que quedan en ese producto tras eliminar \(Z\).
+
+La operación se repite para cada variable del orden de eliminación.
+
+### 3) Traza conceptual mínima
+
+```text
+factores = CPTs
+factores <- restringir evidencia
+para Z en orden:
+    relevantes = factores que contienen Z
+    producto = multiplicar(relevantes)
+    nuevo = sumar_fuera(producto, Z)
+    factores <- (factores \ relevantes) ∪ {nuevo}
+resultado_no_norm = multiplicar(factores)
+posterior = normalizar(resultado_no_norm)
 ```
+
+### 4) Pseudocódigo
+
+```text
 FUNCIÓN EliminaciónDeVariables(Q, e, red, orden):
     // Q: variable de consulta
-    // e: evidencia
+    // e: evidencia observada (diccionario variable -> valor)
     // red: red Bayesiana
-    // orden: orden de eliminación de variables ocultas
+    // orden: variables ocultas en orden de eliminación
 
-    // Paso 1: Inicializar factores
-    factores ← lista de todas las CPTs de la red
+    factores ← copia de todas las CPTs de la red
 
-    // Paso 2: Incorporar evidencia
-    PARA CADA variable E en e:
-        PARA CADA factor f que contenga E:
-            Reemplazar f por f restringido a E = e[E]
+    // 1) Incorporar evidencia
+    PARA CADA variable Ev en claves(e):
+        PARA CADA factor f en factores que contiene Ev:
+            reemplazar f por Restringir(f, Ev, e[Ev])
 
-    // Paso 3: Eliminar variables ocultas una por una
-    PARA CADA variable H en orden:
-        // Reunir factores que mencionan H
-        relevantes ← factores que contienen H
-        Remover relevantes de la lista factores
+    // 2) Eliminar ocultas
+    PARA CADA variable Z en orden:
+        relevantes ← [f en factores | Z ∈ Vars(f)]
+        SI relevantes está vacío:
+            CONTINUAR
 
-        // Multiplicar todos los factores relevantes
-        producto ← multiplicar todos los factores en relevantes
+        factores ← factores sin relevantes
+        producto ← MultiplicarTodos(relevantes)
+        nuevo ← SumarFuera(producto, Z)   // marginalizar Z
+        agregar nuevo a factores
 
-        // Marginalizar H
-        nuevo_factor ← sumar H fuera de producto
-
-        // Agregar el nuevo factor a la lista
-        Agregar nuevo_factor a factores
-
-    // Paso 4: Multiplicar factores restantes
-    resultado ← multiplicar todos los factores en factores
-
-    // Paso 5: Normalizar
-    RETORNAR Normalizar(resultado)
+    // 3) Combinar y normalizar sobre Q
+    resultado_no_norm ← MultiplicarTodos(factores)
+    RETORNAR NormalizarSobre(resultado_no_norm, Q)
 ```
+
+**Homologación de variables (matemática ↔ código):**
+- \(Q\) ↔ `Q` (variable de consulta)
+- \(\mathcal{E}=e\) ↔ `e` (evidencia observada)
+- \(H\) ↔ `orden` (ocultas a eliminar)
+- \(\mathcal{F}_Z\) ↔ `relevantes`
+- \(g(\mathbf{Y})\) ↔ `nuevo`
 
 ---
 
@@ -213,7 +257,26 @@ $f_{R \mid M}(M, R)$:
 | no | sí | 0.1 |
 | no | no | 0.9 |
 
-### Paso 1: Incorporar evidencia $R = \text{sí}$
+### Capa 1: Lenguaje natural
+
+1. Convertimos CPTs en factores.
+2. Fijamos la evidencia \(R=\text{sí}\) (restricción).
+3. Eliminamos la oculta \(M\): multiplicar factores que contienen \(M\), luego sumar sobre \(M\).
+4. Multiplicamos el factor resultante con \(f_L(L)\) y normalizamos.
+
+### Capa 2: Matemática del ejemplo
+
+Con evidencia \(R=\text{sí}\):
+
+$$
+P(L \mid R=\text{sí}) \propto f_L(L)\;\sum_m f_{M\mid L}(L,m)\,f_{R\mid M}(m,R=\text{sí}).
+$$
+
+La normalización final divide por la suma sobre \(L\in\{\text{sí},\text{no}\}\).
+
+### Capa 3: Traza numérica del ejemplo
+
+#### Paso 1: Incorporar evidencia $R = \text{sí}$
 
 Restringimos $f_{R \mid M}$ a $R = \text{sí}$:
 
@@ -226,7 +289,7 @@ $f_{R \mid M}(M, R=\text{sí})$ → nuevo factor $f'_R(M)$:
 
 **Factores actuales:** $f_L(L)$, $f_{M \mid L}(L, M)$, $f'_R(M)$
 
-### Paso 2: Eliminar la variable oculta $M$
+#### Paso 2: Eliminar la variable oculta $M$
 
 **Orden de eliminación:** solo hay una variable oculta ($M$), así que la eliminamos.
 
@@ -254,7 +317,7 @@ $f_5(L) = \sum_m f_4(L, M=m)$:
 
 **Factores actuales:** $f_L(L)$, $f_5(L)$
 
-### Paso 3: Multiplicar factores restantes
+#### Paso 3: Multiplicar factores restantes
 
 $f_6(L) = f_L(L) \times f_5(L)$:
 
@@ -263,7 +326,7 @@ $f_6(L) = f_L(L) \times f_5(L)$:
 | sí | 0.3 | 0.64 | 0.192 |
 | no | 0.7 | 0.22 | 0.154 |
 
-### Paso 4: Normalizar
+#### Paso 4: Normalizar
 
 $$\alpha = \frac{1}{0.192 + 0.154} = \frac{1}{0.346}$$
 
@@ -273,6 +336,30 @@ $$\alpha = \frac{1}{0.192 + 0.154} = \frac{1}{0.346}$$
 | no | $0.154 / 0.346 \approx 0.445$ |
 
 El mismo resultado que por enumeración, pero con menos operaciones.
+
+### Capa 4: Traza de código (mismo ejemplo)
+
+```text
+EliminaciónDeVariables(Q=L, e={R=sí}, red, orden=[M])
+│
+├── factores iniciales = [f_L(L), f_M|L(L,M), f_R|M(M,R)]
+├── restringir evidencia R=sí:
+│   f_R|M(M,R) -> f'_R(M)
+│   factores = [f_L(L), f_M|L(L,M), f'_R(M)]
+│
+├── eliminar Z=M:
+│   relevantes = [f_M|L(L,M), f'_R(M)]
+│   producto = f_4(L,M)
+│   nuevo = sum_M f_4(L,M) = f_5(L)
+│   factores = [f_L(L), f_5(L)]
+│
+├── combinar restantes:
+│   resultado_no_norm(L) = f_L(L) * f_5(L)
+│   = {sí: 0.192, no: 0.154}
+│
+└── normalizar sobre L:
+    posterior = {sí: 0.555, no: 0.445}
+```
 
 ---
 
@@ -372,6 +459,35 @@ $f_5(B) = f_B(B) \times f_4(B)$:
 $$P(B=\text{sí} \mid J=\text{sí}, M=\text{sí}) = \frac{0.000592}{0.000592 + 0.001492} = \frac{0.000592}{0.002084} \approx 0.284$$
 
 Mismo resultado que la enumeración, confirmando la corrección del algoritmo.
+
+---
+
+## Cómo leer este algoritmo sin perderte
+
+### Checklist mental (6 pasos)
+
+1. Escribe factores iniciales (CPTs).
+2. Restringe evidencia en todos los factores relevantes.
+3. Elige una variable oculta \(Z\) según el orden.
+4. Junta factores que contienen \(Z\), multiplícalos, marginaliza \(Z\).
+5. Repite con la siguiente oculta.
+6. Multiplica factores finales y normaliza sobre \(Q\).
+
+### Invariante clave
+
+Después de eliminar cualquier prefijo del orden, el producto de los factores actuales es proporcional a la distribución conjunta donde:
+- la evidencia ya está incorporada, y
+- las variables ya eliminadas fueron sumadas correctamente.
+
+Por eso el resultado final, tras normalizar, coincide con el de enumeración.
+
+### Errores comunes (y cómo evitarlos)
+
+- **Eliminar una variable de consulta o evidencia**: el `orden` debe contener solo ocultas.
+- **No restringir evidencia al inicio**: infla factores y rompe eficiencia.
+- **Olvidar remover factores relevantes antes de agregar el nuevo**: duplica información.
+- **Normalizar sobre todas las variables**: se normaliza sobre el dominio de \(Q\).
+- **Orden de eliminación malo**: puede generar factores intermedios enormes.
 
 ---
 
