@@ -49,6 +49,7 @@ En esta lectura, la pregunta "¿las becas ayudan?" se responde mirando el **efec
 graph TD
     N2(("NSE")) --> B2(("Quiénes reciben<br/>beca"))
     N2 --> R2(("Rendimiento"))
+    B2 -.->|"¿efecto?"| R2
 ```
 
 En esta lectura, desglosar por NSE **ajusta por el confounder** y elimina la correlación espuria.
