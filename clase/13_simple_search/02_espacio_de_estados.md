@@ -48,9 +48,9 @@ $$\text{Problema} = (S,\; s_0,\; A,\; T,\; \text{Goal})$$
 
 Una **solución** es una secuencia de acciones $a_1, a_2, \ldots, a_k$ tal que:
 
-$$T(T(\ldots T(s_0, a_1)\ldots, a_{k-1}), a_k) = s^*$$
+$$T(T(\ldots T(s_0, a_1)\ldots, a_{k-1}), a_k) = s^{∗}$$
 
-donde $\text{Goal}(s^*) = \text{True}$.
+donde $\text{Goal}(s^{∗}) = \text{True}$.
 
 ---
 
@@ -61,7 +61,7 @@ Una vez tenemos la formulación $(S, s_0, A, T, \text{Goal})$, el **espacio de e
 - **Nodos** = estados en $S$
 - **Aristas** = pares $(s, T(s,a))$ para todo $s \in S$ y $a \in A(s)$
 
-Buscar una solución equivale a **encontrar un camino** desde $s_0$ hasta cualquier estado $s^*$ con $\text{Goal}(s^*) = \text{True}$.
+Buscar una solución equivale a **encontrar un camino** desde $s_0$ hasta cualquier estado $s^{∗}$ con $\text{Goal}(s^{∗}) = \text{True}$.
 
 Este es el puente entre la formulación abstracta del problema y los algoritmos de grafos que vamos a desarrollar.
 
@@ -105,30 +105,36 @@ Aquí el espacio de estados **es** el mapa de carreteras — el grafo ya existe 
 
 ## 6. Tamaño del espacio de estados: por qué importa
 
-El tamaño del espacio de estados determina la dificultad del problema. Considera el **8-puzzle** (tablero de $3 \times 3$ con 8 fichas numeradas y un hueco):
+El tamaño del espacio de estados determina si un problema es tratable o no. Empecemos con un caso que ya conocemos.
+
+**Nuestro robot en cuadrícula $3 \times 3$:** 8 estados alcanzables. BFS lo resuelve en microsegundos. Fácil.
+
+**¿Qué pasa cuando el problema escala?** Considera algo que todos hemos visto: el **Cubo de Rubik**.
+
+El cubo tiene 20 piezas móviles (8 esquinas + 12 aristas), cada una con orientaciones posibles. El número total de configuraciones distintas es exactamente:
+
+$$\frac{8! \times 3^8 \times 12! \times 2^{12}}{12} = 43{,}252{,}003{,}274{,}489{,}856{,}000 \approx 4.3 \times 10^{19}$$
 
 | Aspecto | Valor |
 |---|---|
-| Estados posibles | $9! = 362{,}880$ |
-| Estados alcanzables | $\approx 181{,}440$ (la mitad, por razones de paridad) |
-| Factor de ramificación promedio | $\approx 2.67$ |
+| Configuraciones posibles | $\approx 4.3 \times 10^{19}$ |
+| Movimientos posibles por turno | $18$ (6 caras × 3 tipos de giro) |
+| Profundidad máxima de solución ("God's number") | $20$ movimientos |
+| Factor de ramificación efectivo | $\approx 13$ |
 
-El 8-puzzle es *trivial* para BFS moderno. Ahora considera el **15-puzzle** ($4 \times 4$):
+**¿Puede BFS resolver el Cubo de Rubik?** Veamos qué implicaría explorar todo su espacio de estados a $10^7$ expansiones por segundo:
 
-| Aspect | Valor |
-|---|---|
-| Estados posibles | $16! \approx 2 \times 10^{13}$ |
-| Factor de ramificación | $\approx 3$ |
+$$\frac{4.3 \times 10^{19} \text{ estados}}{10^7 \text{ expansiones/seg}} = 4.3 \times 10^{12} \text{ segundos} \approx \mathbf{136{,}000 \text{ años}}$$
 
-A $10^7$ expansiones por segundo, explorar todo el espacio tardaría **millones de años**. Aquí ya necesitamos algoritmos inteligentes.
+Y eso es solo el tiempo. El problema de memoria es aún más extremo: guardar cada estado requiere al menos 20 bytes. El total sería $\approx 8.6 \times 10^{20}$ bytes — más que toda la información digital que existe en el mundo hoy.
 
-El 8-puzzle sirve para ilustrar algoritmos y entender su comportamiento. Pero la motivación real para los algoritmos que estudiaremos (BFS, DFS, IDDFS y más adelante A*) es que el espacio de estados crece exponencialmente con la profundidad.
+Un objeto que cabe en la palma de tu mano tiene un espacio de estados que ninguna computadora puede explorar exhaustivamente. **Este es el punto central:** la búsqueda ciega (BFS, DFS) solo funciona cuando el espacio de estados es pequeño. En cuanto el problema crece un poco, necesitamos guiar la búsqueda — de eso tratan los módulos de búsqueda informada más adelante.
 
 ---
 
 ## 7. Por qué necesitamos frontera y conjunto explorado
 
-Tenemos el espacio de estados. Queremos encontrar un camino de $s_0$ a algún $s^*$. La idea más naive: **explorar nodo por nodo**.
+Tenemos el espacio de estados. Queremos encontrar un camino de $s_0$ a algún $s^{∗}$. La idea más naive: **explorar nodo por nodo**.
 
 Pero hay dos problemas:
 
