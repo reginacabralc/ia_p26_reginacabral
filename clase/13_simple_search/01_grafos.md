@@ -138,7 +138,25 @@ El mismo grafo de entrada genera árboles de búsqueda distintos según el algor
 
 El **grado** de un vértice $v$, denotado $\deg(v)$, es el número de aristas incidentes a $v$.
 
-Resultado fundamental: $\sum_{v \in V} \deg(v) = 2|E|$ (cada arista contribuye 2 al total de grados).
+**Ejemplo concreto:** considera el triángulo $A - B - C - A$ (tres vértices, tres aristas).
+
+| Vértice | Aristas incidentes | Grado |
+|---|---|---|
+| $A$ | $\{A,B\},\{A,C\}$ | 2 |
+| $B$ | $\{A,B\},\{B,C\}$ | 2 |
+| $C$ | $\{A,C\},\{B,C\}$ | 2 |
+
+Suma de grados: $2 + 2 + 2 = 6 = 2 \times 3 = 2|E|$.
+
+**¿Por qué siempre vale $\sum_{v \in V} \deg(v) = 2|E|$?**
+
+Esta es una igualdad **exacta** — no una cota ni una aproximación — y vale para **cualquier grafo no dirigido**, sin importar si es conexo, disperso o denso.
+
+El argumento es de doble conteo: imagina que "distribuyes" cada arista entre sus dos extremos, dando medio punto a cada uno. La suma total de puntos es $|E|$ (una por arista). Pero esa misma suma vista por vértices es $\frac{1}{2}\sum_{v} \deg(v)$, porque el grado de $v$ cuenta cuántas aristas le tocaron. Igualando: $\frac{1}{2}\sum_{v} \deg(v) = |E|$, es decir:
+
+$$\sum_{v \in V} \deg(v) = 2|E|$$
+
+O dicho sin fracciones: cada arista $\{u,v\}$ contribuye $+1$ al grado de $u$ y $+1$ al grado de $v$ — exactamente 2 en total. No hay margen de error porque cada arista tiene **exactamente** dos extremos, ni más ni menos (estamos en un grafo simple).
 
 ### Grafos dirigidos
 
