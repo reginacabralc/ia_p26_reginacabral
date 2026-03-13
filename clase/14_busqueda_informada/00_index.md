@@ -24,10 +24,6 @@ Entrega los notebooks de los cuatro módulos (20 puntos cada uno):
 2. **Canvas directo:** Sube los archivos `.ipynb` directamente en la tarea de Canvas.
 :::
 
-:::homework{id="hw-busqueda-informada" title="Tarea Búsqueda Informada: notebooks y aplicación" due="2026-04-22" points="25"}
-Completa los notebooks `01_grafos_ponderados` y `02_busqueda_informada`, y elige **uno** de los notebooks de aplicación (`03_rutas` o `04_puzzle_8`). Sube la evidencia en un pull request.
-:::
-
 # Búsqueda Informada
 
 > *\"A heuristic is a technique that seeks good enough solutions at the cost of completeness, accuracy, or precision.\"*
